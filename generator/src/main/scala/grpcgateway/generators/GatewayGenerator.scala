@@ -4,9 +4,7 @@ import com.google.api.AnnotationsProto
 import com.google.api.HttpRule.PatternCase
 import com.google.protobuf.Descriptors.FieldDescriptor.JavaType
 import com.google.protobuf.Descriptors._
-import com.google.protobuf.ExtensionRegistry
 import com.google.protobuf.compiler.PluginProtos.{CodeGeneratorRequest, CodeGeneratorResponse}
-import com.trueaccord.scalapb.Scalapb
 import com.trueaccord.scalapb.compiler.FunctionalPrinter.PrinterEndo
 import com.trueaccord.scalapb.compiler.{DescriptorPimps, FunctionalPrinter}
 
@@ -14,14 +12,10 @@ import scala.collection.JavaConverters._
 
 object GatewayGenerator extends protocbridge.ProtocCodeGenerator with DescriptorPimps {
 
-  override def registerExtensions(registry: ExtensionRegistry): Unit = {
-    Scalapb.registerAllExtensions(registry)
-    AnnotationsProto.registerAllExtensions(registry)
-  }
-
   override val params = com.trueaccord.scalapb.compiler.GeneratorParams()
 
-  override def run(request: CodeGeneratorRequest): CodeGeneratorResponse = {
+  override def run(req: Array[Byte]): Array[Byte] = {
+    val request: CodeGeneratorRequest = CodeGeneratorRequest.parseFrom(req)
     val b = CodeGeneratorResponse.newBuilder
 
     val fileDescByName: Map[String, FileDescriptor] =
@@ -32,15 +26,15 @@ object GatewayGenerator extends protocbridge.ProtocCodeGenerator with Descriptor
       }
 
     request.getFileToGenerateList.asScala.foreach { name =>
-      val fileDesc     = fileDescByName(name)
+      val fileDesc = fileDescByName(name)
       val responseFile = generateFile(fileDesc)
       b.addFile(responseFile)
     }
-    b.build
+    b.build.toByteArray
   }
 
   private def generateFile(fileDesc: FileDescriptor): CodeGeneratorResponse.File = {
-    val b          = CodeGeneratorResponse.File.newBuilder()
+    val b = CodeGeneratorResponse.File.newBuilder()
     val objectName = fileDesc.fileDescriptorObjectName.substring(0, fileDesc.fileDescriptorObjectName.length - 5) + "Gateway"
     b.setName(s"${fileDesc.scalaDirectory}/$objectName.scala")
 
@@ -130,16 +124,16 @@ object GatewayGenerator extends protocbridge.ProtocCodeGenerator with Descriptor
   private def generateMethodCase(method: MethodDescriptor): PrinterEndo = { printer =>
     val http = method.getOptions.getExtension(AnnotationsProto.http)
     http.getPatternCase match {
-      case PatternCase.GET    => printer.add(s"""case ("GET", "${http.getGet}") => true""")
-      case PatternCase.POST   => printer.add(s"""case ("POST", "${http.getPost}") => true""")
-      case PatternCase.PUT    => printer.add(s"""case ("PUT", "${http.getPut}") => true""")
+      case PatternCase.GET => printer.add(s"""case ("GET", "${http.getGet}") => true""")
+      case PatternCase.POST => printer.add(s"""case ("POST", "${http.getPost}") => true""")
+      case PatternCase.PUT => printer.add(s"""case ("PUT", "${http.getPut}") => true""")
       case PatternCase.DELETE => printer.add(s"""case ("DELETE", "${http.getDelete}") => true""")
-      case _                  => printer
+      case _ => printer
     }
   }
 
   private def generateMethodHandlerCase(method: MethodDescriptor): PrinterEndo = { printer =>
-    val http       = method.getOptions.getExtension(AnnotationsProto.http)
+    val http = method.getOptions.getExtension(AnnotationsProto.http)
     val methodName = method.getName.charAt(0).toLower + method.getName.substring(1)
     http.getPatternCase match {
       case PatternCase.GET =>

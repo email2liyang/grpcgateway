@@ -1,6 +1,6 @@
 lazy val commonSettings = Seq(
   organization := "beyondthelines",
-  version := "0.0.4",
+  version := "0.0.5",
   licenses := ("MIT", url("http://opensource.org/licenses/MIT")) :: Nil,
   bintrayOrganization := Some("beyondthelines"),
   bintrayPackageLabels := Seq("scala", "protobuf", "grpc"),
@@ -11,12 +11,12 @@ lazy val commonSettings = Seq(
 lazy val runtime = (project in file("runtime"))
   .settings(
     commonSettings,
-    scalaVersion := "2.12.2",
-    crossScalaVersions := Seq("2.12.2", "2.11.11"),
+    scalaVersion := "2.12.3",
+    crossScalaVersions := Seq("2.12.3", "2.11.11"),
     name := "GrpcGatewayRuntime",
     libraryDependencies ++= Seq(
-      "com.trueaccord.scalapb" %% "compilerplugin"          % "0.6.3",
-      "com.trueaccord.scalapb" %% "scalapb-runtime-grpc"    % "0.6.3",
+      "com.trueaccord.scalapb" %% "compilerplugin"          % "0.6.6",
+      "com.trueaccord.scalapb" %% "scalapb-runtime-grpc"    % "0.6.6",
       "com.trueaccord.scalapb" %% "scalapb-json4s"          % "0.3.2",
       "io.grpc"                %  "grpc-netty"              % "1.6.1",
       "org.webjars"            %  "swagger-ui"              % "3.1.5",
@@ -36,10 +36,10 @@ lazy val runtime = (project in file("runtime"))
 lazy val generator = (project in file("generator"))
   .settings(
     commonSettings,
-    scalaVersion := "2.10.6",
+    scalaVersion := "2.12.3",
     name := "GrpcGatewayGenerator",
     libraryDependencies ++= Seq(
-      "com.trueaccord.scalapb" %% "compilerplugin"          % "0.6.3",
+      "com.trueaccord.scalapb" %% "compilerplugin"          % "0.6.6",
       "com.google.api.grpc"    % "googleapis-common-protos" % "0.0.3" % "protobuf"
     ),
     PB.protoSources in Compile += target.value / "protobuf_external",

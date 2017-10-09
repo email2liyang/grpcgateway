@@ -4,9 +4,7 @@ import com.google.api.AnnotationsProto
 import com.google.api.HttpRule.PatternCase
 import com.google.protobuf.Descriptors.FieldDescriptor.JavaType
 import com.google.protobuf.Descriptors.{Descriptor, FieldDescriptor, FileDescriptor, MethodDescriptor}
-import com.google.protobuf.ExtensionRegistry
 import com.google.protobuf.compiler.PluginProtos.{CodeGeneratorRequest, CodeGeneratorResponse}
-import com.trueaccord.scalapb.Scalapb
 import com.trueaccord.scalapb.compiler.FunctionalPrinter.PrinterEndo
 import com.trueaccord.scalapb.compiler.{DescriptorPimps, FunctionalPrinter}
 
@@ -15,14 +13,10 @@ import scala.collection.mutable
 
 object SwaggerGenerator extends protocbridge.ProtocCodeGenerator with DescriptorPimps {
 
-  override def registerExtensions(registry: ExtensionRegistry): Unit = {
-    Scalapb.registerAllExtensions(registry)
-    AnnotationsProto.registerAllExtensions(registry)
-  }
-
   override val params = com.trueaccord.scalapb.compiler.GeneratorParams()
 
-  override def run(request: CodeGeneratorRequest): CodeGeneratorResponse = {
+  override def run(req: Array[Byte]): Array[Byte] = {
+    val request: CodeGeneratorRequest = CodeGeneratorRequest.parseFrom(req)
     val b = CodeGeneratorResponse.newBuilder
 
     val fileDescByName: Map[String, FileDescriptor] =
@@ -37,7 +31,7 @@ object SwaggerGenerator extends protocbridge.ProtocCodeGenerator with Descriptor
       .filter(_.getServices.asScala.nonEmpty)
       .map(generateFile)
       .foreach(b.addFile)
-    b.build
+    b.build.toByteArray
   }
 
   private def generateFile(fileDesc: FileDescriptor): CodeGeneratorResponse.File = {
@@ -224,26 +218,29 @@ object SwaggerGenerator extends protocbridge.ProtocCodeGenerator with Descriptor
         _.add("type: string", "enum:").add(
           field.getEnumType.getValues.asScala.map(v => s"- ${v.getName}"): _*
         )
-      case JavaType.INT  => _.add("type: integer", "format: int32")
+      case JavaType.INT => _.add("type: integer", "format: int32")
       case JavaType.LONG => _.add("type: integer", "format: int64")
-      case t             => _.add(s"type: ${t.name.toLowerCase}")
+      case t => _.add(s"type: ${t.name.toLowerCase}")
     }
   }
 
   private def extractDefs(d: Descriptor): Set[Descriptor] = {
     val explored: mutable.Set[Descriptor] = mutable.Set.empty
+
     def extractDefsRec(d: Descriptor): Set[Descriptor] = {
-      if (explored.contains(d)) Set()
-      else {
+      if (explored.contains(d)) {
+        Set()
+      } else {
         explored.add(d)
         Set(d) ++ d.getFields.asScala.flatMap { f =>
           f.getJavaType match {
             case JavaType.MESSAGE => extractDefsRec(f.getMessageType)
-            case _                => Set.empty[Descriptor]
+            case _ => Set.empty[Descriptor]
           }
         }
       }
     }
+
     extractDefsRec(d)
   }
 }
